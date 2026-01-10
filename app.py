@@ -3,6 +3,25 @@ import streamlit as st
 import json
 from pathlib import Path
 
+st.markdown("""
+<style>
+.bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #f8f9fa;
+    border-top: 1px solid #ddd;
+    padding: 8px 12px;
+    font-size: 14px;
+    z-index: 1000;
+}
+.main > div {
+    padding-bottom: 80px;  /* 下のバーに被らないよう余白 */
+}
+</style>
+""", unsafe_allow_html=True)
+
 DATA_FILE = Path("options_map.json")
 
 if "message" not in st.session_state:
@@ -108,7 +127,7 @@ with tab1:
         )
         genres = list(options_map[state].keys())
         genre = st.selectbox("ジャンル選択",genres,key="genre_select_main")
-
+            
 with tab2:
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -140,6 +159,10 @@ with tab2:
                 st.rerun()
 
 with tab3:
+    if genre not in st.session_state.options_map[state]:
+        st.warning("このジャンルは削除されました。再選択してください。")
+        st.stop()
+
     st.markdown("##### 候補")
     col4, col5, col6 = st.columns(3)
     with col4:
@@ -201,3 +224,20 @@ with tab4:
             key="uploaded_json",
             on_change=load_from_uploaded_json
         )
+
+# --- ボトムバー表示（現在選択中のみ） ---
+try:
+    current_items = st.session_state.options_map[state][genre]
+    if current_items:
+        text = " / ".join(current_items)
+    else:
+        text = "（候補なし）"
+
+    st.markdown(f"""
+    <div class="bottom-bar">
+    📌 <b>{state} ＞ {genre}</b>：{text}
+    </div>
+    """, unsafe_allow_html=True)
+
+except Exception:
+    pass
