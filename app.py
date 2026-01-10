@@ -5,8 +5,9 @@ from pathlib import Path
 
 st.markdown("""
 <style>
+header {visibility: hiddden;}
 .block-container {
-    padding-top: 1rem;
+    padding-top: 0.5rem;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -330,11 +331,9 @@ tree_html = build_tree_html(
 
 st.markdown(f"""
 <div class="bottom-drawer">
-  <details>
     <summary class="drawer-header">📂 候補一覧を表示</summary>
     <div class="drawer-content"">
       {tree_html}
     </div>
-  </details>
 </div>
 """, unsafe_allow_html=True)
