@@ -3,6 +3,38 @@ import streamlit as st
 import json
 from pathlib import Path
 
+st.markdown("""
+<style>
+.bottom-drawer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #f8f9fa;
+    border-top: 1px solid #ccc;
+    z-index: 1000;
+    max-height: 60vh;
+    overflow-y: auto;
+    transition: transform 0.3s ease;
+}
+
+.drawer-header {
+    padding: 8px 12px;
+    background: #e9ecef;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.drawer-content {
+    padding: 8px 12px 20px 12px;
+}
+
+.main > div {
+    padding-bottom: 300px;
+}
+</style>
+""", unsafe_allow_html=True)
+
 DATA_FILE = Path("options_map.json")
 
 if "message" not in st.session_state:
@@ -65,6 +97,18 @@ def save_options(data):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
+def build_tree_html(options_map):
+    html = ""
+    for mood, genres in options_map.items():
+        html += f"<b>{mood}</b><br>"
+        for g, items in genres.items():
+            if items:
+                html += f"&nbsp;&nbsp;└ {g}：{' / '.join(items)}<br>"
+            else:
+                html += f"&nbsp;&nbsp;└ {g}：（なし）<br>"
+        html += "<br>"
+    return html
+
 if "options_map" not in st.session_state:
     st.session_state.options_map = load_options()
 
@@ -108,11 +152,6 @@ with tab1:
         )
         genres = list(options_map[state].keys())
         genre = st.selectbox("ジャンル選択",genres,key="genre_select_main")
-
-        for mood, genre_dict in options_map.items():
-            with st.expander(f"😊 {mood}", expanded=False):
-                for g, items in genre_dict.items():
-                    st.markdown(f"**{g}**：{', '.join(items)}")
             
 with tab2:
     col1, col2, col3 = st.columns(3)
@@ -210,3 +249,16 @@ with tab4:
             key="uploaded_json",
             on_change=load_from_uploaded_json
         )
+
+tree_html = build_tree_html(st.session_state.options_map)
+
+st.markdown(f"""
+<div class="bottom-drawer">
+  <details>
+    <summary class="drawer-header">📂 候補一覧を表示</summary>
+    <div class="drawer-content">
+      {tree_html}
+    </div>
+  </details>
+</div>
+""", unsafe_allow_html=True)
