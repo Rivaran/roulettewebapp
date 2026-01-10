@@ -5,6 +5,57 @@ from pathlib import Path
 
 st.markdown("""
 <style>
+.block-container {
+    padding-top: 1rem;
+}
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<style>
+.tree-state { margin-bottom: 6px; }
+.tree-state.selected { background: #fff3cd; border-radius: 6px; padding: 4px; }
+
+.tree-state-title { font-weight: bold; margin-bottom: 2px; }
+
+.tree-genre { margin-left: 12px; font-size: 0.9rem; }
+.tree-genre.selected { color: #d6336c; font-weight: bold; }
+
+.state-selected {
+  background: #fff3cd;
+  border-radius: 8px;
+  padding: 6px;
+}
+
+.genre-selected {
+  font-weight: bold;
+  color: #d6336c;
+}
+
+.state-block {
+    margin-bottom: 6px;
+}
+
+.state-title {
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+.genre-line {
+    margin-left: 12px;
+    margin-bottom: 2px;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<style>
+
+margin-bottom: 2px;
+
 .bottom-drawer {
     position: fixed;
     bottom: 0;
@@ -30,15 +81,22 @@ st.markdown("""
 }
 
 .main > div {
-    padding-bottom: 300px;
+    padding-bottom: 180px;
 }
 </style>
 """, unsafe_allow_html=True)
 
 DATA_FILE = Path("options_map.json")
 
+if "selected_state" not in st.session_state:
+    st.session_state.selected_state = "元気"
+
+if "selected_genre" not in st.session_state:
+    st.session_state.selected_genre = None
+
 if "message" not in st.session_state:
     st.session_state.message = None
+
 if "message_type" not in st.session_state:
     st.session_state.message_type = None
 
@@ -97,17 +155,34 @@ def save_options(data):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-def build_tree_html(options_map):
+def build_tree_html(options_map, selected_state=None, selected_genre=None):
     html = ""
-    for mood, genres in options_map.items():
-        html += f"<b>{mood}</b><br>"
-        for g, items in genres.items():
-            if items:
-                html += f"&nbsp;&nbsp;└ {g}：{' / '.join(items)}<br>"
-            else:
-                html += f"&nbsp;&nbsp;└ {g}：（なし）<br>"
-        html += "<br>"
+
+    for state, genres in options_map.items():
+
+        is_state_selected = (state == selected_state)
+
+        state_class = "state-selected" if is_state_selected else ""
+
+        html += f'<div class="state-block {state_class}">'
+        html += f'<div class="state-title">{state}</div>'
+
+        for genre, options in genres.items():
+
+            is_genre_selected = (
+                is_state_selected and genre == selected_genre
+            )
+
+            genre_class = "genre-selected" if is_genre_selected else ""
+
+            html += f'<div class="genre-line {genre_class}">'
+            html += f'└ {genre}：{" / ".join(options)}'
+            html += '</div>'
+
+        html += "</div>"
+
     return html
+
 
 if "options_map" not in st.session_state:
     st.session_state.options_map = load_options()
@@ -120,6 +195,36 @@ json_str = json.dumps(
     indent=2
 )
 
+st.set_page_config(page_title="気分ルーレット", page_icon="🎯")
+st.markdown(
+    """
+    <h1 style="
+        white-space: nowrap;
+        text-align: left;
+        font-size: 2rem;
+    ">
+    🎯 気分ルーレット
+    </h1>
+    """,
+    unsafe_allow_html=True
+)
+
+colc, cold = st.columns(2)
+
+with colc:
+
+    state = st.radio(
+        "今の状態は？",
+        ["元気", "普通", "疲れ"],
+        horizontal=True
+    )
+with cold:
+    genres = list(options_map[state].keys())
+    genre = st.selectbox("ジャンル選択",genres,key="genre_select_main")
+
+st.session_state.selected_state = state
+st.session_state.selected_genre = genre
+
 tab1, tab2, tab3, tab4 = st.tabs([
     "🎯 ルーレット",
     "📂 ジャンル編集",
@@ -128,38 +233,16 @@ tab1, tab2, tab3, tab4 = st.tabs([
 ])
 
 with tab1:
-    st.set_page_config(page_title="気分ルーレット", page_icon="🎯")
-    st.markdown(
-        """
-        <h1 style="
-            white-space: nowrap;
-            text-align: left;
-            font-size: 2rem;
-        ">
-        🎯 気分ルーレット
-        </h1>
-        """,
-        unsafe_allow_html=True
-    )
+    if st.button("回す！"):
+        choices = [x for x in options_map[state][genre] if x.strip()]
+        if choices:
+            result = random.choice(choices)
+            st.success(f"✅ ルーレット結果：**{result}**")
+        else:
+            st.warning("⚠ 候補が空だよ")
 
-    colx, coly = st.columns(2)
-
-    with colx:
-        state = st.radio(
-            "今の状態は？",
-            ["元気", "普通", "疲れ"],
-            horizontal=True
-        )
-        genres = list(options_map[state].keys())
-        genre = st.selectbox("ジャンル選択",genres,key="genre_select_main")
-            
 with tab2:
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        if not genres:
-            st.warning("この状態にはジャンルがありません")
-            st.stop()
-        st.write(f"選択中のジャンル：{genre}")
+    col2, col3 = st.columns(2)
     with col2:
     # --- ジャンル追加 ---
         new_genre = st.text_input("ジャンル追加", key="new_genre")
@@ -171,17 +254,16 @@ with tab2:
 
     with col3:
         # --- ジャンル削除 ---
-        with st.expander("ジャンルを削除"):
-            genre_to_delete = st.selectbox(
-                "削除するジャンル",
-                list(st.session_state.options_map[state].keys()),
-                key="delete_genre"
-            )
-            if st.button("ジャンルを削除"):
-                # 念のため、空でも削除可（仕様）
-                st.session_state.options_map[state].pop(genre_to_delete, None)
-                save_options(st.session_state.options_map)
-                st.rerun()
+        genre_to_delete = st.selectbox(
+            "削除するジャンル",
+            list(st.session_state.options_map[state].keys()),
+            key="delete_genre"
+        )
+        if st.button("ジャンルを削除"):
+            # 念のため、空でも削除可（仕様）
+            st.session_state.options_map[state].pop(genre_to_delete, None)
+            save_options(st.session_state.options_map)
+            st.rerun()
 
 with tab3:
     if genre not in st.session_state.options_map[state]:
@@ -203,24 +285,14 @@ with tab3:
                 save_options(st.session_state.options_map)
                 st.rerun()
     with col6:
-        with st.expander("候補を削除"):
-            delete_target = st.selectbox(
-                "削除対象",
-                st.session_state.options_map[state][genre]
-            )
-            if st.button("削除"):
-                st.session_state.options_map[state][genre].remove(delete_target)
-                save_options(st.session_state.options_map)
-                st.rerun()
-
-    with coly:
-        if st.button("回す！"):
-            choices = [x for x in options_map[state][genre] if x.strip()]
-            if choices:
-                result = random.choice(choices)
-                st.success(f"✅ ルーレット結果：**{result}**")
-            else:
-                st.warning("⚠ 候補が空だよ")
+        delete_target = st.selectbox(
+            "削除対象",
+            st.session_state.options_map[state][genre]
+        )
+        if st.button("削除"):
+            st.session_state.options_map[state][genre].remove(delete_target)
+            save_options(st.session_state.options_map)
+            st.rerun()
 
 with tab4:
     cola, colb = st.columns([1, 2])
@@ -250,13 +322,17 @@ with tab4:
             on_change=load_from_uploaded_json
         )
 
-tree_html = build_tree_html(st.session_state.options_map)
+tree_html = build_tree_html(
+    st.session_state.options_map,
+    selected_state=st.session_state.get("selected_state"),
+    selected_genre=st.session_state.get("selected_genre"),
+)
 
 st.markdown(f"""
 <div class="bottom-drawer">
   <details>
     <summary class="drawer-header">📂 候補一覧を表示</summary>
-    <div class="drawer-content">
+    <div class="drawer-content"">
       {tree_html}
     </div>
   </details>
