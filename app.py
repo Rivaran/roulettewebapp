@@ -85,7 +85,18 @@ tab1, tab2, tab3, tab4 = st.tabs([
 
 with tab1:
     st.set_page_config(page_title="気分ルーレット", page_icon="🎯")
-    st.title("🎯 気分ルーレット")
+    st.markdown(
+        """
+        <h1 style="
+            white-space: nowrap;
+            text-align: left;
+            font-size: 2rem;
+        ">
+        🎯 気分ルーレット
+        </h1>
+        """,
+        unsafe_allow_html=True
+    )
 
     colx, coly = st.columns(2)
 
@@ -99,97 +110,94 @@ with tab1:
         genre = st.selectbox("ジャンル選択",genres,key="genre_select_main")
 
 with tab2:
-    with st.expander("ジャンルの編集"):
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            if not genres:
-                st.warning("この状態にはジャンルがありません")
-                st.stop()
-            st.write(f"選択中のジャンル：{genre}")
-        with col2:
-        # --- ジャンル追加 ---
-            new_genre = st.text_input("ジャンル追加", key="new_genre")
-            if st.button("ジャンルを追加"):
-                if new_genre and new_genre not in st.session_state.options_map[state]:
-                    st.session_state.options_map[state][new_genre] = []
-                    save_options(st.session_state.options_map)
-                    st.rerun()
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        if not genres:
+            st.warning("この状態にはジャンルがありません")
+            st.stop()
+        st.write(f"選択中のジャンル：{genre}")
+    with col2:
+    # --- ジャンル追加 ---
+        new_genre = st.text_input("ジャンル追加", key="new_genre")
+        if st.button("ジャンルを追加"):
+            if new_genre and new_genre not in st.session_state.options_map[state]:
+                st.session_state.options_map[state][new_genre] = []
+                save_options(st.session_state.options_map)
+                st.rerun()
 
-        with col3:
-            # --- ジャンル削除 ---
-            with st.expander("ジャンルを削除"):
-                genre_to_delete = st.selectbox(
-                    "削除するジャンル",
-                    list(st.session_state.options_map[state].keys()),
-                    key="delete_genre"
-                )
-                if st.button("ジャンルを削除"):
-                    # 念のため、空でも削除可（仕様）
-                    st.session_state.options_map[state].pop(genre_to_delete, None)
-                    save_options(st.session_state.options_map)
-                    st.rerun()
+    with col3:
+        # --- ジャンル削除 ---
+        with st.expander("ジャンルを削除"):
+            genre_to_delete = st.selectbox(
+                "削除するジャンル",
+                list(st.session_state.options_map[state].keys()),
+                key="delete_genre"
+            )
+            if st.button("ジャンルを削除"):
+                # 念のため、空でも削除可（仕様）
+                st.session_state.options_map[state].pop(genre_to_delete, None)
+                save_options(st.session_state.options_map)
+                st.rerun()
 
 with tab3:
-    with st.expander("候補の編集"):
-        st.markdown("##### 候補")
-        col4, col5, col6 = st.columns(3)
-        with col4:
-            st.text("候補一覧")
-            st.markdown(
-                "\n".join([f"- {opt}" for opt in st.session_state.options_map[state][genre]])
+    st.markdown("##### 候補")
+    col4, col5, col6 = st.columns(3)
+    with col4:
+        st.text("候補一覧")
+        st.markdown(
+            "\n".join([f"- {opt}" for opt in st.session_state.options_map[state][genre]])
+        )
+    with col5:
+        new_option = st.text_input("候補追加")
+        if st.button("追加"):
+            if new_option:
+                st.session_state.options_map[state][genre].append(new_option)
+                save_options(st.session_state.options_map)
+                st.rerun()
+    with col6:
+        with st.expander("候補を削除"):
+            delete_target = st.selectbox(
+                "削除対象",
+                st.session_state.options_map[state][genre]
             )
-        with col5:
-            new_option = st.text_input("候補追加")
-            if st.button("追加"):
-                if new_option:
-                    st.session_state.options_map[state][genre].append(new_option)
-                    save_options(st.session_state.options_map)
-                    st.rerun()
-        with col6:
-            with st.expander("候補を削除"):
-                delete_target = st.selectbox(
-                    "削除対象",
-                    st.session_state.options_map[state][genre]
-                )
-                if st.button("削除"):
-                    st.session_state.options_map[state][genre].remove(delete_target)
-                    save_options(st.session_state.options_map)
-                    st.rerun()
+            if st.button("削除"):
+                st.session_state.options_map[state][genre].remove(delete_target)
+                save_options(st.session_state.options_map)
+                st.rerun()
 
-        with coly:
-            if st.button("回す！"):
-                choices = [x for x in options_map[state][genre] if x.strip()]
-                if choices:
-                    result = random.choice(choices)
-                    st.success(f"✅ ルーレット結果：**{result}**")
-                else:
-                    st.warning("⚠ 候補が空だよ")
+    with coly:
+        if st.button("回す！"):
+            choices = [x for x in options_map[state][genre] if x.strip()]
+            if choices:
+                result = random.choice(choices)
+                st.success(f"✅ ルーレット結果：**{result}**")
+            else:
+                st.warning("⚠ 候補が空だよ")
 
 with tab4:
-    with st.expander("設定の保存・読み込み"):
-        cola, colb = st.columns([1, 2])
+    cola, colb = st.columns([1, 2])
 
-        with cola:
-            st.download_button(
-                label="設定をファイル(JSON)で保存",
-                data=json_str,
-                file_name="kibun_roulette.json",
-                mime="application/json"
-            )
+    with cola:
+        st.download_button(
+            label="設定をファイル(JSON)で保存",
+            data=json_str,
+            file_name="kibun_roulette.json",
+            mime="application/json"
+        )
 
-        with colb:
-            message_area = st.empty()
+    with colb:
+        message_area = st.empty()
 
-            if st.session_state.message:
-                if st.session_state.message_type == "success":
-                    st.toast(st.session_state.message, icon="✅")
-                    st.session_state.message = None
-                else:
-                    message_area.error(st.session_state.message)
+        if st.session_state.message:
+            if st.session_state.message_type == "success":
+                st.toast(st.session_state.message, icon="✅")
+                st.session_state.message = None
+            else:
+                message_area.error(st.session_state.message)
 
-            st.file_uploader(
-                "設定ファイル(JSON)を読み込む",
-                type="json",
-                key="uploaded_json",
-                on_change=load_from_uploaded_json
-            )
+        st.file_uploader(
+            "設定ファイル(JSON)を読み込む",
+            type="json",
+            key="uploaded_json",
+            on_change=load_from_uploaded_json
+        )
