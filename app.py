@@ -30,11 +30,32 @@ st.markdown("""
 
 .genre-selected {
   font-weight: bold;
-  color: #d6336c;
 }
 
+/* ライト */
+.genre-selected {
+    color: #e60033;
+}
+
+/* ダーク */
+html[data-theme="dark"] .genre-selected {
+    color: #ff6b81;
+}
+
+/* 共通（枠だけ） */
 .state-block {
-    margin-bottom: 6px;
+    border-radius: 12px;
+    padding: 12px;
+}
+
+/* 選択中だけ背景つける（ライト） */
+.state-selected {
+    background-color: #fff4cc;
+}
+
+/* ダークモード */
+html[data-theme="dark"] .state-selected {
+    background-color: #3a3320;
 }
 
 .state-title {
