@@ -104,10 +104,34 @@ margin-bottom: 2px;
 .drawer-header {
     padding: 8px 12px;
     background: #e9ecef;
-    cursor: pointer;
+    cursor: default;
     font-weight: bold;
 }
 
+html[data-theme="dark"] .bottom-drawer {
+    background: #1e1e1e;
+    border-top: 1px solid #444;
+}
+
+html[data-theme="dark"] .drawer-header {
+    background: #2a2a2a;
+    color: #f1f1f1;
+}
+
+@media (prefers-color-scheme: dark) {
+
+  .bottom-drawer {
+      background: #1e1e1e;
+      border-top: 1px solid #444;
+  }
+
+  .drawer-header {
+      background: #2a2a2a;
+      color: #f1f1f1;
+  }
+
+}
+            
 .drawer-content {
     padding: 8px 12px 20px 12px;
 }
@@ -380,10 +404,9 @@ tree_html = build_tree_html(
 
 st.markdown(f"""
 <div class="bottom-drawer">
-    <summary class="drawer-header">📂 候補一覧を表示</summary>
+    <div class="drawer-header">📂 候補一覧を表示</div>
     <div class="drawer-content"">
       {tree_html}
     </div>
 </div>
 """, unsafe_allow_html=True)
-    
