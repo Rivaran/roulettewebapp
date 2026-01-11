@@ -58,6 +58,16 @@ html[data-theme="dark"] .state-selected {
     background-color: #3a3320;
 }
 
+@media (prefers-color-scheme: dark) {
+  .state-selected {
+    background-color: #3a3320;
+  }
+
+  .genre-selected {
+    color: #ff6b81;
+  }
+}
+
 .state-title {
     font-weight: bold;
     margin-bottom: 2px;
@@ -376,3 +386,4 @@ st.markdown(f"""
     </div>
 </div>
 """, unsafe_allow_html=True)
+    
