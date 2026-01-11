@@ -156,13 +156,12 @@ def save_options(data):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-def build_tree_html(options_map, selected_state=None, selected_genre=None):
+def build_tree_html(options_map, selected_state=None, selected_genre=None, use_genre_filter=False):
     html = ""
 
     for state, genres in options_map.items():
 
         is_state_selected = (state == selected_state)
-
         state_class = "state-selected" if is_state_selected else ""
 
         html += f'<div class="state-block {state_class}">'
@@ -170,9 +169,16 @@ def build_tree_html(options_map, selected_state=None, selected_genre=None):
 
         for genre, options in genres.items():
 
-            is_genre_selected = (
-                is_state_selected and genre == selected_genre
-            )
+            if not is_state_selected:
+                is_genre_selected = False
+
+            elif not use_genre_filter:
+                # 状態だけ指定 → 全ジャンル強調
+                is_genre_selected = True
+
+            else:
+                # 状態＋ジャンル指定 → 選択ジャンルだけ強調
+                is_genre_selected = (genre == selected_genre)
 
             genre_class = "genre-selected" if is_genre_selected else ""
 
@@ -219,9 +225,14 @@ with colc:
         ["元気", "普通", "疲れ"],
         horizontal=True
     )
+    use_genre_filter = st.checkbox("ジャンルを指定する")
 with cold:
     genres = list(options_map[state].keys())
     genre = st.selectbox("ジャンル選択",genres,key="genre_select_main")
+    if not use_genre_filter:
+        st.caption("※ジャンルは無視され、全候補から選ばれます")
+    if use_genre_filter:
+        st.caption("選択した状態・ジャンルの中の候補から選ばれます")
 
 st.session_state.selected_state = state
 st.session_state.selected_genre = genre
@@ -235,7 +246,13 @@ tab1, tab2, tab3, tab4 = st.tabs([
 
 with tab1:
     if st.button("回す！"):
-        choices = [x for x in options_map[state][genre] if x.strip()]
+        if use_genre_filter:
+            choices = [x for x in options_map[state][genre] if x.strip()]
+        else:
+            candidates = []
+            for g in options_map[state].values():
+                candidates.extend(g)
+            choices = candidates
         if choices:
             result = random.choice(choices)
             st.success(f"✅ ルーレット結果：**{result}**")
@@ -327,6 +344,7 @@ tree_html = build_tree_html(
     st.session_state.options_map,
     selected_state=st.session_state.get("selected_state"),
     selected_genre=st.session_state.get("selected_genre"),
+    use_genre_filter=use_genre_filter
 )
 
 st.markdown(f"""
