@@ -1,7 +1,9 @@
 import random
 import streamlit as st
 import json
+import time
 from pathlib import Path
+from datetime import datetime
 
 st.markdown("""
 <style>
@@ -156,6 +158,9 @@ if "message" not in st.session_state:
 if "message_type" not in st.session_state:
     st.session_state.message_type = None
 
+if "history" not in st.session_state:
+    st.session_state.history = []
+
 def is_valid_options_map(data):
     if not isinstance(data, dict):
         return False
@@ -245,6 +250,24 @@ def build_tree_html(options_map, selected_state=None, selected_genre=None, use_g
 
     return html
 
+def kouho_list():
+
+    tree_html = build_tree_html(
+        st.session_state.options_map,
+        selected_state=st.session_state.get("selected_state"),
+        selected_genre=st.session_state.get("selected_genre"),
+        use_genre_filter=use_genre_filter
+    )
+
+    st.markdown(f"""
+    <div class="bottom-drawer">
+        <div class="drawer-header">📂 候補一覧を表示</div>
+        <div class="drawer-content"">
+        {tree_html}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
 
 if "options_map" not in st.session_state:
     st.session_state.options_map = load_options()
@@ -292,8 +315,9 @@ with cold:
 st.session_state.selected_state = state
 st.session_state.selected_genre = genre
 
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "🎯 ルーレット",
+    "🕘 履歴",
     "📂 ジャンル編集",
     "📝 候補編集",
     "⚙ 設定"
@@ -310,11 +334,37 @@ with tab1:
             choices = candidates
         if choices:
             result = random.choice(choices)
+            # with st.spinner("ルーレット回転中..."):
+            #     time.sleep(1.5)
+
             st.success(f"✅ ルーレット結果：**{result}**")
+
+            st.session_state.history.insert(0, {
+                "time": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "state": state,
+                "genre": genre if use_genre_filter else "未指定",
+                "result": result
+            })
         else:
             st.warning("⚠ 候補が空だよ")
+    kouho_list()
 
 with tab2:
+    st.markdown("### 🕘 ルーレット履歴")
+
+    if not st.session_state.history:
+        st.caption("まだ履歴はありません")
+    else:
+        for h in st.session_state.history[:50]:  # 表示は50件くらいで十分
+            st.markdown(
+                f"- `{h['time']}`｜{h['state']} / {h['genre']} → **{h['result']}**"
+            )
+
+    if st.button("履歴をクリア"):
+        st.session_state.history = []
+        st.rerun()
+
+with tab3:
     col2, col3 = st.columns(2)
     with col2:
     # --- ジャンル追加 ---
@@ -337,8 +387,9 @@ with tab2:
             st.session_state.options_map[state].pop(genre_to_delete, None)
             save_options(st.session_state.options_map)
             st.rerun()
+    kouho_list()
 
-with tab3:
+with tab4:
     if genre not in st.session_state.options_map[state]:
         st.warning("このジャンルは削除されました。再選択してください。")
         st.stop()
@@ -366,8 +417,9 @@ with tab3:
             st.session_state.options_map[state][genre].remove(delete_target)
             save_options(st.session_state.options_map)
             st.rerun()
+    kouho_list()
 
-with tab4:
+with tab5:
     cola, colb = st.columns([1, 2])
 
     with cola:
@@ -395,18 +447,3 @@ with tab4:
             on_change=load_from_uploaded_json
         )
 
-tree_html = build_tree_html(
-    st.session_state.options_map,
-    selected_state=st.session_state.get("selected_state"),
-    selected_genre=st.session_state.get("selected_genre"),
-    use_genre_filter=use_genre_filter
-)
-
-st.markdown(f"""
-<div class="bottom-drawer">
-    <div class="drawer-header">📂 候補一覧を表示</div>
-    <div class="drawer-content"">
-      {tree_html}
-    </div>
-</div>
-""", unsafe_allow_html=True)
